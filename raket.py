@@ -26,7 +26,7 @@ import struct
 import time
 from rak import RakNet
 
-server_prefix = b"MCCPP;Demo;";
+server_prefix = "MCCPP;Demo;";
 server_name = "Raket Server";
 server_id = b"\x00\x00\x00\x00\x00\x1f\x10\x00";
 server_port = 19134;

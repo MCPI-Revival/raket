@@ -107,7 +107,6 @@ class RakNet:
 		packet = self.__parse(data);
 		new_packet = None;
 		if packet["id"] == 0x01 or packet["id"] == 0x02:
-			print(self.__options["name"]);
 			new_packet = self.__raw_packet(0x1c, struct.pack("!d", time.time() - self.__start) + self.__options["id"] + self.__options["magic"] + b"\x00" + bytes([len(self.__options["name"])]) + bytes(self.__options["name"], "utf-8"));
 			self.__socket.sendto(new_packet, addr);
 		elif packet["id"] == 0x05:
