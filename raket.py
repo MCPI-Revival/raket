@@ -37,32 +37,42 @@ queue = bytes();
 raknet = RakNet();
 
 def decode_packet(data):
-	if data[4] == 0x00:
+	try:
+		if data[4] == 0x00:
+			packet = {
+				"iteration": data[1],
+				"encapsulation": data[4],
+				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
+				"id": data[7],
+				"data": data[8:-1] + bytes([data[-1]]),
+				"error": None
+			};
+		elif data[4] == 0x40:
+			packet = {
+				"iteration": data[1],
+				"encapsulation": data[4],
+				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
+				"id": data[10],
+				"data": data[11:-1] + bytes([data[-1]]),
+				"error": None
+			};
+		elif data[4] == 0x60:
+			packet = {
+				"iteration": data[1],
+				"encapsulation": data[4],
+				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
+				"id": data[14],
+				"data": data[15:-1] + bytes([data[-1]]),
+				"error": None
+			};
+		else:
+			packet = {
+				"error": "invalid"
+			};
+	except IndexError:
 		packet = {
-			"iteration": data[1],
-			"encapsulation": data[4],
-			"length": int(struct.unpack("!H", data[5:7])[0] / 8),
-			"id": data[7],
-			"data": data[8:-1] + bytes([data[-1]])
+			"error": "invalid"
 		};
-	elif data[4] == 0x40:
-		packet = {
-			"iteration": data[1],
-			"encapsulation": data[4],
-			"length": int(struct.unpack("!H", data[5:7])[0] / 8),
-			"id": data[10],
-			"data": data[11:-1] + bytes([data[-1]])
-		};
-	elif data[4] == 0x60:
-		packet = {
-			"iteration": data[1],
-			"encapsulation": data[4],
-			"length": int(struct.unpack("!H", data[5:7])[0] / 8),
-			"id": data[14],
-			"data": data[15:-1] + bytes([data[-1]])
-		};
-	else:
-		print(data);
 	return packet;
 
 def encode_packet(encapsulation, id, data, iterations):
@@ -112,13 +122,10 @@ def spawn_entities(addr):
 	for i in raknet.players:
 		print(i);
 		if i != uid:
-			try:
-				new_packet = raw_packet(0x89, raknet.players[i]["client_id"] + encode_string(raknet.players[i]["username"]) + struct.pack("!I", raknet.players[i]["entity_id"]) + encode_pos(raknet.players[i]["pos"]) + encode_pitch_yaw(raknet.players[i]["pitch_yaw"]) + b"\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
-				raknet.sendto(new_packet, addr);
-				plus(uid, new_packet);
-			except:
-				pass;
-				
+			new_packet = raw_packet(0x89, raknet.players[i]["client_id"] + encode_string(raknet.players[i]["username"]) + struct.pack("!I", raknet.players[i]["entity_id"]) + encode_pos(raknet.players[i]["pos"]) + encode_pitch_yaw(raknet.players[i]["pitch_yaw"]) + b"\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
+			raknet.sendto(new_packet, addr);
+			plus(uid, new_packet);
+
 	new_packet = raw_packet(0x85, encode_string("Welcome to " + server_name + ", " + raknet.players[uid]["username"] + "!"), raknet.players[uid]["iterations"]);
 	raknet.sendto(new_packet, addr);
 	return 0;
@@ -135,7 +142,11 @@ def handler(data, addr, socket):
 	global queue;
 	uid = raknet.get_uid(addr);
 	if data[0] == 0xa0:
-		raknet.sendto(raw_packet(decode_packet(raknet.players[uid]["last_packet"])["id"], decode_packet(raknet.players[uid]["last_packet"])["data"], raknet.players[uid]["iterations"]), addr);
+		old_packet = decode_packet(raknet.players[uid]["last_packet"]);
+		if old_packet["error"] == None:
+			raknet.sendto(raw_packet(old_packet["id"], old_packet["data"], raknet.players[uid]["iterations"]), addr);
+		else:
+			raknet.sendto(raknet.players[uid]["last_packet"], addr);
 	else:
 		packet = decode_packet(data);
 		new_packet = None;
@@ -167,8 +178,11 @@ def handler(data, addr, socket):
 		elif packet["id"] == 0x15:
 			del raknet.players[uid];
 		elif packet["id"] == 0x00 and packet["encapsulation"] == 0x40:
-			new_packet = raw_packet(0x86, struct.pack("!l", 0x00), raknet.players[uid]["iterations"]);
-			socket.sendto(new_packet, addr);
+			try:
+				new_packet = raw_packet(0x86, struct.pack("!l", 0x00), raknet.players[uid]["iterations"]);
+				socket.sendto(new_packet, addr);
+			except:
+				pass;
 		if new_packet != None and uid in raknet.players:
 			plus(uid, new_packet);
 	return 0;

@@ -66,8 +66,8 @@ class RakNet:
 	def get_options(self):
 		return self.__options;
 
-	def get_uid(self, i):
-		return bytes(str(i), "utf-8") + self.__addr_to_uid[i];
+	def get_uid(self, addr):
+		return bytes(addr[0], "utf-8") + struct.pack("!H", addr[1]);
 
 	def get_addrs(self):
 		return self.__addrs;
@@ -121,7 +121,7 @@ class RakNet:
 			self.__socket.sendto(new_packet, addr);
 			if addr not in self.__addrs:
 				self.__addrs.add(addr);
-			self.players[bytes(str(addr), "utf-8") + data[-8:]] = {
+			self.players[bytes(addr[0], "utf-8") + struct.pack("!H", addr[1])] = {
 				"addr": addr,
 				"last_packet": None,
 				"iterations": 0,
