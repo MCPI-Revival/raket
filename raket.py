@@ -77,7 +77,7 @@ def decode_packet(data):
 
 def encode_packet(encapsulation, id, data, iterations):
 	packet = bytes();
-	template = b"\x84" + bytes([iterations]) + b"\x00\x00" + bytes([encapsulation]) + struct.pack("!H", (len(data) + 1) * 8);
+	template = b"\x84" + bytes([iterations & 0xff]) + bytes([(iterations >> 8) & 0xff]) + bytes([(iterations >> 16) & 0xff]) + bytes([encapsulation]) + struct.pack("!H", (len(data) + 1) * 8);
 	if encapsulation == 0x00:
 		packet = template + data;
 	elif encapsulation == 0x40:
@@ -87,7 +87,7 @@ def encode_packet(encapsulation, id, data, iterations):
 	return packet;
 
 def raw_packet(id, data, iterations):
-	packet = b"\x84" + bytes([iterations]) + b"\x00\x00\x00" + struct.pack("!H", (len(data) + 1) * 8) + bytes([id]) + data;
+	packet = b"\x84" + bytes([iterations & 0xff]) + bytes([(iterations >> 8) & 0xff]) + bytes([(iterations >> 16) & 0xff]) + b"\x00" + struct.pack("!H", (len(data) + 1) * 8) + bytes([id]) + data;
 	return packet;
 
 def encode_pos(pos):
@@ -132,10 +132,7 @@ def spawn_entities(addr):
 
 def plus(uid, packet):
 	raknet.players[uid]["last_packet"] = packet;
-	if raknet.players[uid]["iterations"] >= 255:
-		raknet.players[uid]["iterations"] = 0;
-	else:
-		raknet.players[uid]["iterations"] += 1;
+	raknet.players[uid]["iterations"] += 1;
 
 def handler(data, addr, socket):
 	global entities;
