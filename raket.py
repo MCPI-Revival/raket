@@ -84,10 +84,10 @@ def encode_packet(encapsulation, id, data, iterations, count = None):
 		packet = template + bytes([id]) + data;
 	elif encapsulation == 0x40:
 		assert count is not None, "Count not set"
-		packet = template + b"\x00\x00\x00" + bytes([id]) + data;
+		packet = template + bytes([count & 0xff]) + bytes([(count >> 8) & 0xff]) + bytes([(count >> 16) & 0xff]) + bytes([id]) + data;
 	elif encapsulation == 0x60:
 		assert count is not None, "Count not set"
-		packet = template + b"\x00\x00\x00\x00\x00\x00\x00" + bytes([id]) + data;
+		packet = template + bytes([count & 0xff]) + bytes([(count >> 8) & 0xff]) + bytes([(count >> 16) & 0xff]) + b"\x00\x00\x00\x00" + bytes([id]) + data;
 	return packet;
 
 def encode_pos(pos):
