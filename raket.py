@@ -40,7 +40,7 @@ def decode_packet(data):
 	try:
 		if data[4] == 0x00:
 			packet = {
-				"iteration": data[1],
+				"iteration": (data[1] & 0xff) | ((data[2] & 0xff) << 8) | ((data[3] & 0xff) << 16),
 				"encapsulation": data[4],
 				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
 				"id": data[7],
@@ -49,7 +49,7 @@ def decode_packet(data):
 			};
 		elif data[4] == 0x40:
 			packet = {
-				"iteration": data[1],
+				"iteration": (data[1] & 0xff) | ((data[2] & 0xff) << 8) | ((data[3] & 0xff) << 16),
 				"encapsulation": data[4],
 				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
 				"id": data[10],
@@ -58,7 +58,7 @@ def decode_packet(data):
 			};
 		elif data[4] == 0x60:
 			packet = {
-				"iteration": data[1],
+				"iteration": (data[1] & 0xff) | ((data[2] & 0xff) << 8) | ((data[3] & 0xff) << 16),
 				"encapsulation": data[4],
 				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
 				"id": data[14],
@@ -148,7 +148,7 @@ def handler(data, addr, socket):
 		packet = decode_packet(data);
 		new_packet = None;
 		if packet["id"] != 0x00:
-			new_packet = b"\xc0\x00\x01\x01" + bytes([packet["iteration"]]) + b"\x00\x00";
+			new_packet = b"\xc0\x00\x01\x01" + bytes([packet["iteration"] & 0xff]) + bytes([(packet["iteration"] >> 8) & 0xff]) + bytes([(packet["iteration"] >> 16) & 0xff]);
 			socket.sendto(new_packet, addr);
 		if packet["id"] == 0x09:
 			raknet.players[uid]["session"] = data[-8:];
