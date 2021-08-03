@@ -125,6 +125,7 @@ class RakNet:
 				"addr": addr,
 				"last_packet": None,
 				"iterations": 0,
+				"count": 0,
 				"entity_id": None,
 				"username": None,
 				"session": None,
