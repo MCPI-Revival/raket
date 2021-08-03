@@ -79,15 +79,11 @@ def encode_packet(encapsulation, id, data, iterations):
 	packet = bytes();
 	template = b"\x84" + bytes([iterations & 0xff]) + bytes([(iterations >> 8) & 0xff]) + bytes([(iterations >> 16) & 0xff]) + bytes([encapsulation]) + struct.pack("!H", (len(data) + 1) * 8);
 	if encapsulation == 0x00:
-		packet = template + data;
+		packet = template + bytes([id]) + data;
 	elif encapsulation == 0x40:
 		packet = template + b"\x00\x00\x00" + bytes([id]) + data;
 	elif encapsulation == 0x60:
 		packet = template + b"\x00\x00\x00\x00\x00\x00\x00" + bytes([id]) + data;
-	return packet;
-
-def raw_packet(id, data, iterations):
-	packet = b"\x84" + bytes([iterations & 0xff]) + bytes([(iterations >> 8) & 0xff]) + bytes([(iterations >> 16) & 0xff]) + b"\x00" + struct.pack("!H", (len(data) + 1) * 8) + bytes([id]) + data;
 	return packet;
 
 def encode_pos(pos):
@@ -117,16 +113,16 @@ def broadcast(data, ex=set()):
 
 def spawn_entities(addr):
 	uid = raknet.get_uid(addr);
-	new_packet = raw_packet(0x89, raknet.players[uid]["client_id"] + encode_string(raknet.players[uid]["username"]) + struct.pack("!I", raknet.players[uid]["entity_id"]) + encode_pos([0, 4, 0]) + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
+	new_packet = encode_packet(0x00, 0x89, raknet.players[uid]["client_id"] + encode_string(raknet.players[uid]["username"]) + struct.pack("!I", raknet.players[uid]["entity_id"]) + encode_pos([0, 4, 0]) + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
 	broadcast(new_packet, [uid]);
 	for i in raknet.players:
 		print(i);
 		if i != uid:
-			new_packet = raw_packet(0x89, raknet.players[i]["client_id"] + encode_string(raknet.players[i]["username"]) + struct.pack("!I", raknet.players[i]["entity_id"]) + encode_pos(raknet.players[i]["pos"]) + encode_pitch_yaw(raknet.players[i]["pitch_yaw"]) + b"\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
+			new_packet = encode_packet(0x00, 0x89, raknet.players[i]["client_id"] + encode_string(raknet.players[i]["username"]) + struct.pack("!I", raknet.players[i]["entity_id"]) + encode_pos(raknet.players[i]["pos"]) + encode_pitch_yaw(raknet.players[i]["pitch_yaw"]) + b"\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f" + b"\x00", 0);
 			raknet.sendto(new_packet, addr);
 			plus(uid, new_packet);
 
-	new_packet = raw_packet(0x85, encode_string("Welcome to " + server_name + ", " + raknet.players[uid]["username"] + "!"), raknet.players[uid]["iterations"]);
+	new_packet = encode_packet(0x00, 0x85, encode_string("Welcome to " + server_name + ", " + raknet.players[uid]["username"] + "!"), raknet.players[uid]["iterations"]);
 	raknet.sendto(new_packet, addr);
 	return 0;
 
@@ -141,7 +137,7 @@ def handler(data, addr, socket):
 	if data[0] == 0xa0:
 		old_packet = decode_packet(raknet.players[uid]["last_packet"]);
 		if old_packet["error"] == None:
-			raknet.sendto(raw_packet(old_packet["id"], old_packet["data"], raknet.players[uid]["iterations"]), addr);
+			raknet.sendto(encode_packet(0x00, old_packet["id"], old_packet["data"], raknet.players[uid]["iterations"]), addr);
 		else:
 			raknet.sendto(raknet.players[uid]["last_packet"], addr);
 	else:
@@ -152,7 +148,7 @@ def handler(data, addr, socket):
 			socket.sendto(new_packet, addr);
 		if packet["id"] == 0x09:
 			raknet.players[uid]["session"] = data[-8:];
-			new_packet = raw_packet(0x10, b"\x04\x3f\x57\xfe\xcd" + struct.pack("!H", server_port) + b"\x00\x00\x04\xf5\xff\xff\xf5\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00" + raknet.players[uid]["session"] + b"\x00\x00\x00\x00\x04\x44\x0b\xa9", raknet.players[uid]["iterations"]);
+			new_packet = encode_packet(0x00, 0x10, b"\x04\x3f\x57\xfe\xcd" + struct.pack("!H", server_port) + b"\x00\x00\x04\xf5\xff\xff\xf5\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00\x04\xff\xff\xff\xff\x00\x00" + raknet.players[uid]["session"] + b"\x00\x00\x00\x00\x04\x44\x0b\xa9", raknet.players[uid]["iterations"]);
 			socket.sendto(new_packet, addr);
 		elif packet["id"] == 0x82:
 			username = packet["data"][2:2 + struct.unpack("!H", packet["data"][:2])[0]].decode("utf-8");
@@ -176,7 +172,7 @@ def handler(data, addr, socket):
 			del raknet.players[uid];
 		elif packet["id"] == 0x00 and packet["encapsulation"] == 0x40:
 			try:
-				new_packet = raw_packet(0x86, struct.pack("!l", 0x00), raknet.players[uid]["iterations"]);
+				new_packet = encode_packet(0x00, 0x86, struct.pack("!l", 0x00), raknet.players[uid]["iterations"]);
 				socket.sendto(new_packet, addr);
 			except:
 				pass;
