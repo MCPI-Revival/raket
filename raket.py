@@ -77,14 +77,16 @@ def decode_packet(data):
 		};
 	return packet;
 
-def encode_packet(encapsulation, id, data, iterations):
+def encode_packet(encapsulation, id, data, iterations, count = None):
 	packet = bytes();
 	template = b"\x84" + bytes([iterations & 0xff]) + bytes([(iterations >> 8) & 0xff]) + bytes([(iterations >> 16) & 0xff]) + bytes([encapsulation]) + struct.pack("!H", (len(data) + 1) * 8);
 	if encapsulation == 0x00:
 		packet = template + bytes([id]) + data;
 	elif encapsulation == 0x40:
+		assert count is not None, "Count not set"
 		packet = template + b"\x00\x00\x00" + bytes([id]) + data;
 	elif encapsulation == 0x60:
+		assert count is not None, "Count not set"
 		packet = template + b"\x00\x00\x00\x00\x00\x00\x00" + bytes([id]) + data;
 	return packet;
 
@@ -155,10 +157,12 @@ def handler(data, addr, socket):
 		elif packet["id"] == 0x82:
 			username = packet["data"][2:2 + struct.unpack("!H", packet["data"][:2])[0]].decode("utf-8");
 			raknet.players[uid]["username"] = username;
-			new_packet = encode_packet(0x60, 0x83, b"\x00\x00\x00\x00", raknet.players[uid]["iterations"]);
+			new_packet = encode_packet(0x60, 0x83, b"\x00\x00\x00\x00", raknet.players[uid]["iterations"], raknet.players[uid]["count"]);
+			raknet.players[uid]["count"] += 1
 			socket.sendto(new_packet, addr);
 			plus(uid, new_packet);
-			new_packet = encode_packet(0x60, 0x87, b"\x01\x02\x03\x04\x00\x00\x00\x00\x00\x00\x00\x01" + struct.pack("!I", entities + 1) + encode_pos([0, 4, 0]), raknet.players[uid]["iterations"]);
+			new_packet = encode_packet(0x60, 0x87, b"\x01\x02\x03\x04\x00\x00\x00\x00\x00\x00\x00\x01" + struct.pack("!I", entities + 1) + encode_pos([0, 4, 0]), raknet.players[uid]["iterations"], raknet.players[uid]["count"]);
+			raknet.players[uid]["count"] += 1
 			socket.sendto(new_packet, addr);
 			entities += 1;
 			raknet.players[uid]["entity_id"] = entities;
