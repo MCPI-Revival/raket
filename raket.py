@@ -52,6 +52,7 @@ def decode_packet(data):
 				"iteration": (data[1] & 0xff) | ((data[2] & 0xff) << 8) | ((data[3] & 0xff) << 16),
 				"encapsulation": data[4],
 				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
+				"count": (data[7] & 0xff) | ((data[8] & 0xff) << 8) | ((data[9] & 0xff) << 16),
 				"id": data[10],
 				"data": data[11:-1] + bytes([data[-1]]),
 				"error": None
@@ -61,6 +62,7 @@ def decode_packet(data):
 				"iteration": (data[1] & 0xff) | ((data[2] & 0xff) << 8) | ((data[3] & 0xff) << 16),
 				"encapsulation": data[4],
 				"length": int(struct.unpack("!H", data[5:7])[0] / 8),
+				"count": (data[7] & 0xff) | ((data[8] & 0xff) << 8) | ((data[9] & 0xff) << 16),
 				"id": data[14],
 				"data": data[15:-1] + bytes([data[-1]]),
 				"error": None
